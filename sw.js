@@ -1,4 +1,4 @@
-const CACHE_NAME = 'focus-timer-v1';
+const CACHE_NAME = 'focus-timer-v1.1';
 
 // Files to cache for offline use
 const STATIC_ASSETS = [
