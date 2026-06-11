@@ -1527,7 +1527,21 @@ function loadState() {
   } catch(e) {}
   return false;
 }
+setTimeout(() => {
+  alert(
+    "Permission: " + Notification.permission +
+    "\nSupported: " + ("Notification" in window)
+  );
 
+  try {
+    new Notification("Test Notification", {
+      body: "Hello"
+    });
+  } catch (e) {
+    alert("Notification Error: " + e.message);
+    console.error(e);
+  }
+}, 3000);
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 const hadSaved = loadState();
 if (!hadSaved) {
