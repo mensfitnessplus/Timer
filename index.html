@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Focus Timer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7C6FE0">
+
+<!-- PWA icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+
+<!-- Apple PWA support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Focus Timer">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+
+<style>
+  :root[data-theme="dark"] {
+    --bg: #0F0F0F;
+    --surface: #1C1C1C;
+    --surface2: #252525;
+    --surface3: #2E2E2E;
+    --border: #333333;
+    --text: #FFFFFF;
+    --text2: #A0A0A0;
+    --text3: #606060;
+    --accent: #7C6FE0;
+    --accent-dim: #6355C7;
+    --accent-glow: rgba(124,111,224,0.30);
+    --danger: #EF4444;
+    --overtime: #F59E0B;
+    --overtime-glow: rgba(245,158,11,0.30);
+    --card-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    --modal-bg: rgba(0,0,0,0.85);
+    --ring-track: #2A2A2A;
+  }
+  :root[data-theme="light"] {
+    --bg: #EDEEF0;
+    --surface: #FFFFFF;
+    --surface2: #F5F5F5;
+    --surface3: #EBEBEB;
+    --border: #E0E0E0;
+    --text: #111111;
+    --text2: #666666;
+    --text3: #AAAAAA;
+    --accent: #6355C7;
+    --accent-dim: #5244B0;
+    --accent-glow: rgba(99,85,199,0.18);
+    --danger: #DC2626;
+    --overtime: #D97706;
+    --overtime-glow: rgba(217,119,6,0.20);
+    --card-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --modal-bg: rgba(0,0,0,0.6);
+    --ring-track: #E5E5E5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  .material-symbols-rounded {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 10px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+    transition: background 0.3s;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: var(--card-shadow);
+  }
+  .icon-btn:active { transform: scale(0.93); }
+  .icon-btn.active { background: var(--accent); color: #fff; }
+
+  /* ─── TOOLBAR (multi-select) ─── */
+  .toolbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar.visible { display: flex; }
+  .toolbar-left { font-size: 14px; font-weight: 500; color: var(--text2); }
+  .toolbar-right { display: flex; gap: 10px; }
+  .del-btn {
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .cancel-btn {
+    background: var(--surface2);
+    color: var(--text);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ─── GRID ─── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 14px 16px 100px;
+  }
+
+  /* ─── CARD ─── */
+  .card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 18px 14px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: var(--card-shadow);
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    user-select: none;
+    touch-action: none;
+  }
+  .card:active { transform: scale(0.97); }
+  .card.selected { border-color: var(--accent); }
+  .card.dragging { opacity: 0.4; transform: scale(0.95); }
+  .card.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .card.running .card-name { color: var(--accent); }
+  .card.paused .card-name { color: var(--overtime); }
+  .card.overtime .card-name { color: var(--overtime); }
+
+  .card-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .select-mode .card-check { display: flex; }
+  .card.selected .card-check { background: var(--accent); border-color: var(--accent); }
+
+  .card-ring-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .card-ring { width: 72px; height: 72px; position: relative; }
+  .card-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .card-ring .track { fill: none; stroke: var(--ring-track); stroke-width: 2; }
+  .card-ring .progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s linear;
+  }
+  .card-ring .overtime-progress {
+    fill: none;
+    stroke: var(--overtime);
+    stroke-width: 2;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s linear;
+  }
+  .card-ring .time-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: -0.5px;
+  }
+  .card-ring .time-text.overtime-text { color: var(--overtime); }
+
+  .card-name {
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.3s;
+  }
+  .card-total {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .card-controls { display: flex; justify-content: center; gap: 8px; }
+  .card-play-btn, .card-pause-btn, .card-stop-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .card-play-btn:active, .card-pause-btn:active, .card-stop-btn:active { transform: scale(0.9); }
+  .card-play-btn { background: var(--text); color: var(--bg); }
+  .card-pause-btn { background: var(--accent); color: #fff; }
+  .card-stop-btn {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  /* ─── ADD CARD ─── */
+  .add-card {
+    background: transparent;
+    border-radius: 20px;
+    border: 2px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    cursor: pointer;
+    color: var(--text3);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .add-card:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── FOCUS OVERLAY ─── */
+  .focus-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .focus-overlay.visible { display: flex; }
+  .focus-overlay.overtime-mode { background: var(--bg); }
+
+  .focus-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+  }
+  .focus-title {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    flex: 1;
+  }
+  .focus-counter {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .back-btn {
+    background: var(--surface);
+    border: none;
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 20px;
+  }
+
+  .focus-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .swipe-hint {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 32px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .swipe-hint.left { left: 10px; }
+  .swipe-hint.right { right: 10px; }
+
+  /* ─── BIG RING ─── */
+  .big-ring {
+    width: min(72vw, 280px);
+    height: min(72vw, 280px);
+    position: relative;
+    margin-bottom: 32px;
+  }
+  .big-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .big-ring .track { fill: none; stroke: var(--ring-track); stroke-width: 4; }
+  .big-ring .progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s linear;
+  }
+  .big-ring .overtime-ring {
+    fill: none;
+    stroke: var(--overtime);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 276.46;
+    stroke-dashoffset: 276.46;
+    transition: stroke-dashoffset 0.5s linear;
+  }
+  /* Overtime ring goes clockwise: starts at 276.46 offset, decreases toward 0 */
+  .big-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .big-time {
+    font-size: clamp(42px, 14vw, 60px);
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: -3px;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s;
+  }
+  .big-time.overtime-color { color: var(--overtime); }
+  .big-remaining {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text2);
+    margin-top: 4px;
+    transition: color 0.3s;
+  }
+  .big-remaining.overtime-label { color: var(--overtime); font-weight: 600; }
+
+  /* Paused ring pulse */
+  @keyframes pausedPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .big-ring.paused-pulse .progress { animation: pausedPulse 1.5s ease-in-out infinite; }
+
+  /* Overtime ring flash when alerting */
+  @keyframes overtimeFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .big-ring.alert-flash .overtime-ring { animation: overtimeFlash 0.6s ease-in-out infinite; }
+
+  .focus-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .focus-btn {
+    border: none;
+    border-radius: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, opacity 0.2s, background 0.2s;
+  }
+  .focus-btn:active { transform: scale(0.92); }
+  .focus-btn.sm {
+    width: 52px; height: 52px;
+    background: transparent;
+    color: var(--text2);
+    border-radius: 50%;
+    font-size: 24px;
+    border: 1px solid var(--border);
+  }
+  .focus-btn.lg {
+    width: 68px; height: 68px;
+    background: var(--text);
+    color: var(--bg);
+    border-radius: 24px;
+    font-size: 36px;
+    box-shadow: none;
+  }
+  .focus-btn.lg.pause-active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .focus-btn.lg.overtime-dismiss {
+    background: var(--overtime);
+    color: #fff;
+    animation: overtimeFlash 0.6s ease-in-out infinite;
+  }
+  .focus-btn.stop-lg {
+    width: 52px; height: 52px;
+    background: transparent;
+    color: var(--text2);
+    border-radius: 50%;
+    font-size: 24px;
+    border: 1px solid var(--border);
+  }
+
+  .focus-next { font-size: 14px; font-weight: 500; color: var(--text2); }
+
+  /* Overtime overtime-badge */
+  .overtime-badge {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: var(--overtime);
+    color: #fff;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: 0.3px;
+  }
+  .overtime-badge.visible { display: flex; }
+  .overtime-badge .material-symbols-rounded { font-size: 16px; }
+
+  /* Status label under ring */
+  .focus-status-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-top: -20px;
+    margin-bottom: 20px;
+    transition: color 0.3s;
+  }
+  .focus-status-label.running { color: var(--accent); }
+  .focus-status-label.paused { color: var(--overtime); }
+  .focus-status-label.overtime { color: var(--overtime); }
+
+  .focus-body.slide-left { animation: slideLeft 0.25s ease; }
+  .focus-body.slide-right { animation: slideRight 0.25s ease; }
+  @keyframes slideLeft {
+    from { transform: translateX(60px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideRight {
+    from { transform: translateX(-60px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* ─── MODAL ─── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--modal-bg);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.visible { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px 24px 40px;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .modal input[type="text"], .modal input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 16px;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-row { display: flex; gap: 12px; }
+  .modal-row > div { flex: 1; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+  .modal-cancel {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .modal-add {
+    flex: 2;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ─── THEME TOGGLE ─── */
+  .theme-toggle {
+    background: var(--surface);
+    border: none;
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: var(--card-shadow);
+  }
+
+  /* empty state */
+  .empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.7;
+  }
+  .empty-state-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="header-title">Focus Timers</h1>
+  <div class="header-actions">
+    <button class="theme-toggle" id="themeBtn" title="Toggle theme">
+      <span class="material-symbols-rounded">dark_mode</span>
+    </button>
+    <button class="icon-btn" id="selectBtn" title="Multi-select">
+      <span class="material-symbols-rounded">checklist</span>
+    </button>
+  </div>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <span class="toolbar-left" id="selectedCount">0 selected</span>
+  <div class="toolbar-right">
+    <button class="del-btn" id="deleteSelectedBtn">Delete</button>
+    <button class="cancel-btn" id="cancelSelectBtn">Cancel</button>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<button id="addFab" style="
+  position:fixed; bottom:28px; right:24px; z-index:50;
+  width:56px; height:56px; border-radius:50%;
+  background:var(--accent); color:#fff;
+  border:none; cursor:pointer;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  display:flex; align-items:center; justify-content:center;
+  transition: transform 0.15s;
+" title="Add timer">
+  <span class="material-symbols-rounded" style="font-size: 32px;">add</span>
+</button>
+
+<div class="focus-overlay" id="focusOverlay">
+  <div class="focus-header">
+    <button class="back-btn" id="backBtn"><span class="material-symbols-rounded">arrow_back</span></button>
+    <div class="focus-title" id="focusTitle">Timer</div>
+    <div class="focus-counter" id="focusCounter">
+      <span class="material-symbols-rounded" style="font-size:18px; opacity: 0.6;">timer</span>
+      <span id="focusCounterText">1/1</span>
+    </div>
+  </div>
+  <div class="focus-body" id="focusBody">
+    <div class="swipe-hint left" id="swipeLeft"><span class="material-symbols-rounded">chevron_left</span></div>
+    <div class="swipe-hint right" id="swipeRight"><span class="material-symbols-rounded">chevron_right</span></div>
+
+    <!-- Overtime badge -->
+    <div class="overtime-badge" id="overtimeBadge">
+      <span class="material-symbols-rounded">alarm_on</span>
+      <span>OVERTIME</span>
+    </div>
+
+    <div class="big-ring" id="bigRing">
+      <svg viewBox="0 0 100 100">
+        <!-- Track -->
+        <circle class="track" cx="50" cy="50" r="44"/>
+        <!-- Normal countdown progress (counterclockwise drain) -->
+        <circle class="progress" id="bigProgress" cx="50" cy="50" r="44"
+          stroke-dasharray="276.46" stroke-dashoffset="0"/>
+        <!-- Overtime progress (clockwise fill, orange) -->
+        <circle class="overtime-ring" id="overtimeProgress" cx="50" cy="50" r="44"/>
+      </svg>
+      <div class="big-ring-center">
+        <div class="big-time" id="bigTime">00:00</div>
+        <div class="big-remaining" id="bigRemaining">Ready</div>
+      </div>
+    </div>
+
+    <!-- Status label -->
+    <div class="focus-status-label" id="focusStatusLabel"></div>
+
+    <div class="focus-controls">
+      <button class="focus-btn sm" id="resetBtn" title="Reset"><span class="material-symbols-rounded">refresh</span></button>
+      <button class="focus-btn lg" id="playBtn"><span class="material-symbols-rounded">play_arrow</span></button>
+      <button class="focus-btn stop-lg" id="stopBtn" title="Stop"><span class="material-symbols-rounded">stop</span></button>
+    </div>
+    <div class="focus-next" id="focusNext"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2>New Timer</h2>
+    <label>Timer Name</label>
+    <input type="text" id="timerName" placeholder="e.g. Deep Work" maxlength="30"/>
+    <label>Duration</label>
+    <div class="modal-row">
+      <div>
+        <label>Minutes</label>
+        <input type="number" id="timerMins" placeholder="25" min="0" max="999"/>
+      </div>
+      <div>
+        <label>Seconds</label>
+        <input type="number" id="timerSecs" placeholder="0" min="0" max="59"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modalCancelBtn">Cancel</button>
+      <button class="modal-add" id="modalAddBtn">Add Timer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let timers = [
+  { id: 1, name: 'Focus', totalSecs: 25*60, remaining: 25*60, running: false, paused: false, interval: null, overtime: 0, alerting: false },
+  { id: 2, name: 'Short Break', totalSecs: 5*60, remaining: 5*60, running: false, paused: false, interval: null, overtime: 0, alerting: false },
+];
+let nextId = 3;
+let selectMode = false;
+let selectedIds = new Set();
+let focusIndex = -1;
+let theme = 'dark';
+let dragSrcIndex = null;
+
+// Continuous beep state
+let alertCtx = null;
+let alertInterval = null;
+
+// ─── DOM REFS ─────────────────────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+const focusOverlay = document.getElementById('focusOverlay');
+const focusTitle = document.getElementById('focusTitle');
+const focusCounterText = document.getElementById('focusCounterText');
+const focusBody = document.getElementById('focusBody');
+const bigTime = document.getElementById('bigTime');
+const bigRemaining = document.getElementById('bigRemaining');
+const bigProgress = document.getElementById('bigProgress');
+const overtimeProgress = document.getElementById('overtimeProgress');
+const focusNext = document.getElementById('focusNext');
+const playBtn = document.getElementById('playBtn');
+const swipeLeft = document.getElementById('swipeLeft');
+const swipeRight = document.getElementById('swipeRight');
+const bigRing = document.getElementById('bigRing');
+const overtimeBadge = document.getElementById('overtimeBadge');
+const focusStatusLabel = document.getElementById('focusStatusLabel');
+
+const CIRC = 2 * Math.PI * 44; // 276.46
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function fmt(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function fmtShort(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  if (m >= 60) return `${Math.floor(m/60)}h ${m%60}m`;
+  if (s === 0) return `${m}m`;
+  return `${m}m ${s}s`;
+}
+
+// ─── RENDER GRID ──────────────────────────────────────────────────────────────
+function renderGrid() {
+  grid.innerHTML = '';
+  if (timers.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><span class="material-symbols-rounded empty-state-icon">timer</span>Tap <strong>+</strong> to add your first timer</div>';
+    return;
+  }
+  timers.forEach((t, i) => {
+    const isOvertime = t.remaining === 0 && t.overtime > 0;
+    const circ = 2 * Math.PI * 32;
+
+    // Normal progress (countdown)
+    const pct = t.remaining / t.totalSecs;
+    const offset = circ * (1 - pct); // for display in card
+
+    // Overtime progress: max display = totalSecs (full circle = spent same time as timer)
+    const overtimePct = isOvertime ? Math.min(t.overtime / t.totalSecs, 1) : 0;
+    const overtimeOffset = circ * (1 - overtimePct);
+
+    // Card state classes
+    let stateClass = '';
+    if (t.running) stateClass = 'running';
+    else if (t.paused) stateClass = 'paused';
+    else if (isOvertime) stateClass = 'overtime';
+
+    const card = document.createElement('div');
+    card.className = `card ${stateClass}${selectedIds.has(t.id) ? ' selected' : ''}`;
+    card.dataset.id = t.id;
+    card.dataset.index = i;
+    card.draggable = true;
+
+    // Determine icon for play area
+    let playIcon = '';
+    let playStyle = '';
+    if (t.running) {
+      playIcon = `<button class="card-pause-btn" data-id="${t.id}" title="Pause"><span class="material-symbols-rounded">pause</span></button>`;
+    } else if (t.paused) {
+      playIcon = `<button class="card-play-btn" data-id="${t.id}" title="Resume"><span class="material-symbols-rounded">play_arrow</span></button>`;
+    } else {
+      playIcon = `<button class="card-play-btn" data-id="${t.id}" title="Start" ${t.remaining<=0 ? 'style="opacity:0.4;pointer-events:none;"' : ''}><span class="material-symbols-rounded">play_arrow</span></button>`;
+    }
+
+    const overtimeRingStr = isOvertime
+      ? `<circle class="overtime-progress" cx="36" cy="36" r="32"
+           stroke-dasharray="${circ.toFixed(2)}"
+           stroke-dashoffset="${overtimeOffset.toFixed(2)}"
+           fill="none" stroke="var(--overtime)" stroke-width="2" stroke-linecap="round"/>`
+      : '';
+
+    card.innerHTML = `
+      <div class="card-check"><span class="material-symbols-rounded" style="font-size: 16px;">check</span></div>
+      <div class="card-ring-wrap">
+        <div class="card-ring">
+          <svg viewBox="0 0 72 72">
+            <circle class="track" cx="36" cy="36" r="32"/>
+            <circle class="progress" cx="36" cy="36" r="32"
+              stroke-dasharray="${circ.toFixed(2)}"
+              stroke-dashoffset="${(circ * pct).toFixed(2)}"/>
+            ${overtimeRingStr}
+          </svg>
+          <div class="time-text ${isOvertime ? 'overtime-text' : ''}">
+            ${isOvertime ? '+'+fmt(t.overtime) : fmt(t.remaining)}
+          </div>
+        </div>
+      </div>
+      <div class="card-name">${t.name}</div>
+      <div class="card-total">${fmtShort(t.totalSecs)}</div>
+      <div class="card-controls">
+        ${playIcon}
+        <button class="card-stop-btn" data-id="${t.id}" title="Reset"><span class="material-symbols-rounded">stop</span></button>
+      </div>
+    `;
+
+    card.addEventListener('dragstart', onDragStart);
+    card.addEventListener('dragover', onDragOver);
+    card.addEventListener('dragleave', onDragLeave);
+    card.addEventListener('drop', onDrop);
+    card.addEventListener('dragend', onDragEnd);
+
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.card-play-btn') || e.target.closest('.card-pause-btn') || e.target.closest('.card-stop-btn')) return;
+      if (selectMode) { toggleSelect(t.id); }
+      else { openFocus(i); }
+    });
+
+    let pressTimer;
+    card.addEventListener('pointerdown', () => {
+      pressTimer = setTimeout(() => {
+        if (!selectMode) enterSelectMode();
+        toggleSelect(t.id);
+      }, 500);
+    });
+    card.addEventListener('pointerup', () => clearTimeout(pressTimer));
+    card.addEventListener('pointermove', () => clearTimeout(pressTimer));
+
+    grid.appendChild(card);
+  });
+
+  if (selectMode) grid.classList.add('select-mode');
+  else grid.classList.remove('select-mode');
+
+  grid.querySelectorAll('.card-play-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = parseInt(btn.dataset.id);
+      const t = timers.find(x => x.id === id);
+      if (t && t.paused) resumeTimer(id);
+      else startTimer(id);
+    });
+  });
+  grid.querySelectorAll('.card-pause-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pauseTimer(parseInt(btn.dataset.id));
+    });
+  });
+  grid.querySelectorAll('.card-stop-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      stopTimer(parseInt(btn.dataset.id));
+    });
+  });
+}
+
+// ─── TIMER LOGIC ──────────────────────────────────────────────────────────────
+function startTimer(id) {
+  const t = timers.find(x => x.id === id);
+  if (!t || t.running || t.remaining <= 0) return;
+  // Request permission on first ever start
+  requestNotifPermission();
+  t.running = true;
+  t.paused = false;
+  t.interval = setInterval(() => {
+    if (t.alerting) {
+      // Already in overtime — just count up
+      t.overtime++;
+    } else {
+      t.remaining--;
+      if (t.remaining <= 0) {
+        t.remaining = 0;
+        t.overtime = 0;
+        t.alerting = true;
+        startContinuousAlert(id);
+        showAlertNotif(t);
+      }
+    }
+    // Update live notification every 5 s to avoid spam, always on overtime
+    if (notifPermission === 'granted') {
+      const shouldUpdate = t.alerting || (t.remaining % 5 === 0);
+      if (shouldUpdate) showLiveNotif(t);
+    }
+    updateCardUI(t);
+    if (focusIndex >= 0 && timers[focusIndex]?.id === id) updateFocusUI();
+    saveState();
+  }, 1000);
+  showLiveNotif(t);
+  updateCardUI(t);
+  if (focusIndex >= 0 && timers[focusIndex]?.id === id) updateFocusUI();
+}
+
+function pauseTimer(id) {
+  const t = timers.find(x => x.id === id);
+  if (!t || !t.running) return;
+  clearInterval(t.interval);
+  t.interval = null;
+  t.running = false;
+  t.paused = true;
+  closeLiveNotif();
+  showLiveNotif(t); // show "Paused" notification
+  updateCardUI(t);
+  if (focusIndex >= 0 && timers[focusIndex]?.id === id) updateFocusUI();
+  saveState();
+}
+
+function resumeTimer(id) {
+  const t = timers.find(x => x.id === id);
+  if (!t || t.running || !t.paused) return;
+  t.paused = false;
+  startTimer(id);
+}
+
+function stopTimer(id) {
+  const t = timers.find(x => x.id === id);
+  if (!t) return;
+  clearInterval(t.interval);
+  t.interval = null;
+  t.running = false;
+  t.paused = false;
+  t.remaining = t.totalSecs;
+  t.overtime = 0;
+  t.alerting = false;
+  stopContinuousAlert(id);
+  closeLiveNotif();
+  updateCardUI(t);
+  if (focusIndex >= 0 && timers[focusIndex]?.id === id) updateFocusUI();
+  saveState();
+}
+
+function dismissAlert(id) {
+  const t = timers.find(x => x.id === id);
+  if (!t) return;
+  clearInterval(t.interval);
+  t.interval = null;
+  t.running = false;
+  t.alerting = false;
+  stopContinuousAlert(id);
+  closeLiveNotif();
+  updateCardUI(t);
+  if (focusIndex >= 0 && timers[focusIndex]?.id === id) updateFocusUI();
+  saveState();
+}
+
+function resetTimer(id) {
+  stopTimer(id);
+}
+
+// ─── CONTINUOUS ALERT ─────────────────────────────────────────────────────────
+let alertIntervals = {}; // per-timer alert intervals
+
+function startContinuousAlert(id) {
+  stopContinuousAlert(id); // clear any existing
+  playBeep();
+  alertIntervals[id] = setInterval(() => {
+    const t = timers.find(x => x.id === id);
+    if (!t || !t.alerting) {
+      stopContinuousAlert(id);
+      return;
+    }
+    playBeep();
+  }, 3000); // ring every 3 seconds
+}
+
+function stopContinuousAlert(id) {
+  if (alertIntervals[id]) {
+    clearInterval(alertIntervals[id]);
+    delete alertIntervals[id];
+  }
+}
+
+// ─── CARD UI UPDATE ───────────────────────────────────────────────────────────
+function updateCardUI(t) {
+  const card = grid.querySelector(`.card[data-id="${t.id}"]`);
+  if (!card) return;
+
+  const isOvertime = t.remaining === 0 && t.overtime > 0;
+  const timeEl = card.querySelector('.time-text');
+  if (timeEl) {
+    timeEl.textContent = isOvertime ? '+' + fmt(t.overtime) : fmt(t.remaining);
+    timeEl.className = 'time-text' + (isOvertime ? ' overtime-text' : '');
+  }
+
+  // Update progress ring
+  const prog = card.querySelector('.progress');
+  if (prog) {
+    const circ = 2 * Math.PI * 32;
+    const pct = t.remaining / t.totalSecs;
+    prog.style.strokeDashoffset = (circ * pct).toFixed(2);
+  }
+
+  // Update overtime ring
+  let otRing = card.querySelector('.overtime-progress');
+  if (isOvertime) {
+    if (!otRing) {
+      // create it
+      const svg = card.querySelector('svg');
+      otRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      otRing.classList.add('overtime-progress');
+      const circ = 2 * Math.PI * 32;
+      otRing.setAttribute('cx', '36');
+      otRing.setAttribute('cy', '36');
+      otRing.setAttribute('r', '32');
+      otRing.setAttribute('fill', 'none');
+      otRing.setAttribute('stroke', 'var(--overtime)');
+      otRing.setAttribute('stroke-width', '2');
+      otRing.setAttribute('stroke-linecap', 'round');
+      otRing.setAttribute('stroke-dasharray', circ.toFixed(2));
+      otRing.setAttribute('stroke-dashoffset', circ.toFixed(2));
+      svg.appendChild(otRing);
+    }
+    const circ = 2 * Math.PI * 32;
+    const otPct = Math.min(t.overtime / t.totalSecs, 1);
+    otRing.setAttribute('stroke-dashoffset', (circ * (1 - otPct)).toFixed(2));
+  }
+
+  // State class
+  card.classList.remove('running', 'paused', 'overtime');
+  if (t.running) card.classList.add('running');
+  else if (t.paused) card.classList.add('paused');
+  else if (isOvertime) card.classList.add('overtime');
+
+  // Controls
+  const controls = card.querySelector('.card-controls');
+  if (controls) {
+    const stopBtn = controls.querySelector('.card-stop-btn');
+    const existingPlay = controls.querySelector('.card-play-btn');
+    const existingPause = controls.querySelector('.card-pause-btn');
+
+    if (t.running && !existingPause) {
+      if (existingPlay) existingPlay.remove();
+      const pb = document.createElement('button');
+      pb.className = 'card-pause-btn';
+      pb.dataset.id = t.id;
+      pb.title = 'Pause';
+      pb.innerHTML = '<span class="material-symbols-rounded">pause</span>';
+      pb.addEventListener('click', (e) => { e.stopPropagation(); pauseTimer(t.id); });
+      controls.insertBefore(pb, stopBtn);
+    } else if (!t.running && existingPause) {
+      existingPause.remove();
+      const pb = document.createElement('button');
+      pb.className = 'card-play-btn';
+      pb.dataset.id = t.id;
+      pb.title = t.paused ? 'Resume' : 'Start';
+      pb.innerHTML = '<span class="material-symbols-rounded">play_arrow</span>';
+      if (t.remaining <= 0 && !t.paused) { pb.style.opacity = '0.4'; pb.style.pointerEvents = 'none'; }
+      pb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (t.paused) resumeTimer(t.id);
+        else startTimer(t.id);
+      });
+      controls.insertBefore(pb, stopBtn);
+    }
+  }
+}
+
+// ─── FOCUS MODE ───────────────────────────────────────────────────────────────
+function openFocus(index) {
+  focusIndex = index;
+  focusOverlay.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+  updateFocusUI();
+}
+
+function closeFocus() {
+  focusOverlay.classList.remove('visible');
+  document.body.style.overflow = '';
+  focusIndex = -1;
+}
+
+function updateFocusUI() {
+  if (focusIndex < 0 || focusIndex >= timers.length) return;
+  const t = timers[focusIndex];
+  focusTitle.textContent = t.name;
+  focusCounterText.textContent = `${focusIndex+1}/${timers.length}`;
+
+  const isOvertime = t.remaining === 0 && t.overtime > 0;
+
+  // Time display
+  if (isOvertime) {
+    bigTime.textContent = '+' + fmt(t.overtime);
+    bigTime.classList.add('overtime-color');
+    bigRemaining.textContent = 'Overtime';
+    bigRemaining.classList.add('overtime-label');
+  } else {
+    bigTime.textContent = fmt(t.remaining);
+    bigTime.classList.remove('overtime-color');
+    bigRemaining.textContent = t.running ? `Remaining: ${fmt(t.remaining)}`
+      : t.paused ? `Paused — ${fmt(t.remaining)} left`
+      : t.remaining === 0 ? 'Done!' : 'Ready';
+    bigRemaining.classList.remove('overtime-label');
+  }
+
+  // Normal ring: countdown (starts full, drains to empty)
+  const pct = t.remaining / t.totalSecs;
+  bigProgress.style.strokeDashoffset = (CIRC * (1 - pct)).toFixed(2);
+  bigProgress.style.stroke = 'var(--accent)';
+
+  // Overtime ring: fills clockwise from 0 as overtime grows
+  if (isOvertime) {
+    bigProgress.style.strokeDashoffset = CIRC.toFixed(2); // hide normal ring when in overtime
+    const otPct = Math.min(t.overtime / t.totalSecs, 1);
+    overtimeProgress.style.strokeDashoffset = (CIRC * (1 - otPct)).toFixed(2);
+  } else {
+    overtimeProgress.style.strokeDashoffset = CIRC.toFixed(2); // hide overtime ring
+  }
+
+  // Overtime badge
+  overtimeBadge.classList.toggle('visible', isOvertime || t.alerting);
+
+  // Status label
+  focusStatusLabel.className = 'focus-status-label';
+  if (t.running && !isOvertime) {
+    focusStatusLabel.textContent = 'RUNNING';
+    focusStatusLabel.classList.add('running');
+  } else if (t.paused) {
+    focusStatusLabel.textContent = 'PAUSED';
+    focusStatusLabel.classList.add('paused');
+  } else if (isOvertime) {
+    focusStatusLabel.textContent = 'OVERTIME';
+    focusStatusLabel.classList.add('overtime');
+  } else {
+    focusStatusLabel.textContent = '';
+  }
+
+  // Ring pulse when paused
+  bigRing.classList.toggle('paused-pulse', t.paused);
+  bigRing.classList.toggle('alert-flash', t.alerting);
+
+  // Play button behavior
+  if (t.alerting) {
+    // Show dismiss button
+    playBtn.innerHTML = '<span class="material-symbols-rounded">notifications_off</span>';
+    playBtn.className = 'focus-btn lg overtime-dismiss';
+    playBtn.style.opacity = '1';
+    playBtn.style.pointerEvents = 'auto';
+  } else if (t.running) {
+    // Show pause
+    playBtn.innerHTML = '<span class="material-symbols-rounded">pause</span>';
+    playBtn.className = 'focus-btn lg pause-active';
+    playBtn.style.opacity = '1';
+    playBtn.style.pointerEvents = 'auto';
+  } else if (t.paused) {
+    // Show resume
+    playBtn.innerHTML = '<span class="material-symbols-rounded">play_arrow</span>';
+    playBtn.className = 'focus-btn lg';
+    playBtn.style.opacity = '1';
+    playBtn.style.pointerEvents = 'auto';
+  } else {
+    // Show start
+    playBtn.innerHTML = '<span class="material-symbols-rounded">play_arrow</span>';
+    playBtn.className = 'focus-btn lg';
+    const canStart = t.remaining > 0;
+    playBtn.style.opacity = canStart ? '1' : '0.4';
+    playBtn.style.pointerEvents = canStart ? 'auto' : 'none';
+  }
+
+  swipeLeft.style.opacity = focusIndex > 0 ? '0.5' : '0.1';
+  swipeRight.style.opacity = focusIndex < timers.length - 1 ? '0.5' : '0.1';
+
+  if (timers.length > 1) {
+    const next = timers[(focusIndex + 1) % timers.length];
+    focusNext.textContent = `Next: ${next.name} ${fmtShort(next.totalSecs)}`;
+  } else {
+    focusNext.textContent = '';
+  }
+}
+
+function switchFocus(direction, anim) {
+  const newIndex = focusIndex + direction;
+  if (newIndex < 0 || newIndex >= timers.length) return;
+  focusIndex = newIndex;
+  focusBody.classList.remove('slide-left', 'slide-right');
+  void focusBody.offsetWidth;
+  focusBody.classList.add(anim);
+  updateFocusUI();
+}
+
+// ─── PLAY BUTTON (multi-state) ────────────────────────────────────────────────
+document.getElementById('backBtn').addEventListener('click', closeFocus);
+playBtn.addEventListener('click', () => {
+  if (focusIndex < 0) return;
+  const t = timers[focusIndex];
+  if (t.alerting) {
+    dismissAlert(t.id);
+  } else if (t.running) {
+    pauseTimer(t.id);
+  } else if (t.paused) {
+    resumeTimer(t.id);
+  } else {
+    startTimer(t.id);
+  }
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (focusIndex < 0) return;
+  resetTimer(timers[focusIndex].id);
+});
+document.getElementById('stopBtn').addEventListener('click', () => {
+  if (focusIndex < 0) return;
+  stopTimer(timers[focusIndex].id);
+});
+
+// ─── SWIPE ────────────────────────────────────────────────────────────────────
+let touchStartX = 0, touchStartY = 0;
+focusBody.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+focusBody.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (dx < 0) switchFocus(1, 'slide-left');
+    else switchFocus(-1, 'slide-right');
+  }
+}, { passive: true });
+
+let mouseDownX = 0;
+focusBody.addEventListener('mousedown', (e) => { mouseDownX = e.clientX; });
+focusBody.addEventListener('mouseup', (e) => {
+  const dx = e.clientX - mouseDownX;
+  if (Math.abs(dx) > 80) {
+    if (dx < 0) switchFocus(1, 'slide-left');
+    else switchFocus(-1, 'slide-right');
+  }
+});
+
+// ─── SELECT MODE ──────────────────────────────────────────────────────────────
+function enterSelectMode() {
+  selectMode = true;
+  document.getElementById('toolbar').classList.add('visible');
+  document.getElementById('selectBtn').classList.add('active');
+  renderGrid();
+}
+
+function exitSelectMode() {
+  selectMode = false;
+  selectedIds.clear();
+  document.getElementById('toolbar').classList.remove('visible');
+  document.getElementById('selectBtn').classList.remove('active');
+  document.getElementById('selectedCount').textContent = '0 selected';
+  renderGrid();
+}
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  document.getElementById('selectedCount').textContent = `${selectedIds.size} selected`;
+  const card = grid.querySelector(`.card[data-id="${id}"]`);
+  if (card) card.classList.toggle('selected', selectedIds.has(id));
+}
+
+document.getElementById('selectBtn').addEventListener('click', () => {
+  if (selectMode) exitSelectMode();
+  else enterSelectMode();
+});
+document.getElementById('cancelSelectBtn').addEventListener('click', exitSelectMode);
+document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
+  selectedIds.forEach(id => {
+    const t = timers.find(x => x.id === id);
+    if (t && t.interval) clearInterval(t.interval);
+    stopContinuousAlert(id);
+  });
+  timers = timers.filter(t => !selectedIds.has(t.id));
+  saveState();
+  exitSelectMode();
+});
+
+// ─── DRAG & DROP ─────────────────────────────────────────────────────────────
+function onDragStart(e) {
+  dragSrcIndex = parseInt(e.currentTarget.dataset.index);
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const destIndex = parseInt(e.currentTarget.dataset.index);
+  if (dragSrcIndex !== null && dragSrcIndex !== destIndex) {
+    const moved = timers.splice(dragSrcIndex, 1)[0];
+    timers.splice(destIndex, 0, moved);
+    saveState();
+    renderGrid();
+  }
+}
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  grid.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
+  dragSrcIndex = null;
+}
+
+// ─── ADD TIMER ────────────────────────────────────────────────────────────────
+document.getElementById('addFab').addEventListener('click', () => {
+  document.getElementById('timerName').value = '';
+  document.getElementById('timerMins').value = '';
+  document.getElementById('timerSecs').value = '';
+  document.getElementById('modalBackdrop').classList.add('visible');
+  setTimeout(() => document.getElementById('timerName').focus(), 100);
+});
+
+document.getElementById('modalCancelBtn').addEventListener('click', () => {
+  document.getElementById('modalBackdrop').classList.remove('visible');
+});
+document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modalBackdrop')) {
+    document.getElementById('modalBackdrop').classList.remove('visible');
+  }
+});
+
+document.getElementById('modalAddBtn').addEventListener('click', () => {
+  const name = document.getElementById('timerName').value.trim() || 'Timer';
+  const mins = parseInt(document.getElementById('timerMins').value) || 0;
+  const secs = parseInt(document.getElementById('timerSecs').value) || 0;
+  const total = mins * 60 + secs;
+  if (total <= 0) { document.getElementById('timerMins').focus(); return; }
+  timers.push({ id: nextId++, name, totalSecs: total, remaining: total, running: false, paused: false, interval: null, overtime: 0, alerting: false });
+  document.getElementById('modalBackdrop').classList.remove('visible');
+  saveState();
+  renderGrid();
+});
+
+['timerName','timerMins','timerSecs'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('modalAddBtn').click();
+  });
+});
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+document.getElementById('themeBtn').addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme;
+  document.getElementById('themeBtn').innerHTML = theme === 'dark'
+    ? '<span class="material-symbols-rounded">dark_mode</span>'
+    : '<span class="material-symbols-rounded">light_mode</span>';
+  saveState();
+});
+
+// ─── BEEP ─────────────────────────────────────────────────────────────────────
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Three ascending pulses for alert
+    [0, 0.18, 0.36].forEach((delay, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 700 + i * 120; // ascending pitch
+      o.type = 'sine';
+      g.gain.setValueAtTime(0.35, ctx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+      o.start(ctx.currentTime + delay);
+      o.stop(ctx.currentTime + delay + 0.25);
+    });
+    // Close context after all sounds finish
+    setTimeout(() => { try { ctx.close(); } catch(e) {} }, 1500);
+  } catch(e) {}
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+let notifPermission = Notification?.permission ?? 'default';
+let liveNotif = null;       // the persistent "ticking" notification
+let liveNotifTimerId = null; // which timer owns the live notification
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') { notifPermission = 'granted'; return true; }
+  if (Notification.permission === 'denied') return false;
+  try {
+    const result = await Notification.requestPermission();
+    notifPermission = result;
+    return result === 'granted';
+  } catch(e) { return false; }
+}
+
+function closeLiveNotif() {
+  if (liveNotif) { try { liveNotif.close(); } catch(e) {} liveNotif = null; }
+  liveNotifTimerId = null;
+}
+
+function showLiveNotif(t) {
+  if (notifPermission !== 'granted') return;
+  const isOvertime = t.remaining === 0 && t.overtime > 0;
+  const timeStr = isOvertime ? '+' + fmt(t.overtime) : fmt(t.remaining);
+  const body = isOvertime
+    ? `Overtime by ${fmt(t.overtime)} — tap to dismiss`
+    : t.paused
+      ? `Paused — ${fmt(t.remaining)} remaining`
+      : `${fmt(t.remaining)} remaining`;
+  const title = isOvertime ? `⏰ ${t.name} — Time's up!` : `⏱ ${t.name}`;
+
+  // Close previous and open a fresh one (Safari/Chrome don't support renotify reliably)
+  closeLiveNotif();
+  try {
+    liveNotif = new Notification(title, {
+      body,
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="%237C6FE0"/><text x="50%25" y="54%25" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="20" fill="white">' + timeStr + '</text></svg>',
+      tag: `focus-timer-${t.id}`,
+      renotify: false,
+      silent: true,
+    });
+    liveNotifTimerId = t.id;
+    liveNotif.onclick = () => {
+      window.focus();
+      const idx = timers.findIndex(x => x.id === t.id);
+      if (idx >= 0) openFocus(idx);
+      closeLiveNotif();
+    };
+    liveNotif.onclose = () => { liveNotif = null; };
+  } catch(e) {}
+}
+
+function showAlertNotif(t) {
+  if (notifPermission !== 'granted') return;
+  try {
+    const n = new Notification(`⏰ ${t.name} — Time's up!`, {
+      body: `Your timer has finished. Tap to open.`,
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="%23F59E0B"/><text x="50%25" y="54%25" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="26" fill="white">!</text></svg>',
+      tag: `focus-timer-alert-${t.id}`,
+      renotify: true,
+      requireInteraction: true,
+    });
+    n.onclick = () => {
+      window.focus();
+      const idx = timers.findIndex(x => x.id === t.id);
+      if (idx >= 0) { openFocus(idx); dismissAlert(t.id); }
+      n.close();
+    };
+  } catch(e) {}
+}
+
+// ─── SERVICE WORKER ───────────────────────────────────────────────────────────
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+
+// ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
+const LS_TIMERS = 'focustimer_timers';
+const LS_THEME  = 'focustimer_theme';
+const LS_NEXTID = 'focustimer_nextid';
+
+function saveState() {
+  const toSave = timers.map(t => ({
+    id: t.id, name: t.name, totalSecs: t.totalSecs,
+    remaining: t.remaining, running: false, paused: false,
+    overtime: t.overtime || 0, alerting: false
+  }));
+  try {
+    localStorage.setItem(LS_TIMERS, JSON.stringify(toSave));
+    localStorage.setItem(LS_THEME, theme);
+    localStorage.setItem(LS_NEXTID, String(nextId));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const savedTheme = localStorage.getItem(LS_THEME);
+    if (savedTheme) {
+      theme = savedTheme;
+      document.documentElement.dataset.theme = theme;
+      document.getElementById('themeBtn').innerHTML = theme === 'dark'
+        ? '<span class="material-symbols-rounded">dark_mode</span>'
+        : '<span class="material-symbols-rounded">light_mode</span>';
+    }
+    const savedId = localStorage.getItem(LS_NEXTID);
+    if (savedId) nextId = parseInt(savedId);
+    const savedTimers = localStorage.getItem(LS_TIMERS);
+    if (savedTimers) {
+      const parsed = JSON.parse(savedTimers);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        timers = parsed.map(t => ({ ...t, running: false, paused: false, interval: null, overtime: t.overtime||0, alerting: false }));
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+const hadSaved = loadState();
+if (!hadSaved) {
+  timers = [
+    { id: 1, name: 'Focus', totalSecs: 25*60, remaining: 25*60, running: false, paused: false, interval: null, overtime: 0, alerting: false },
+    { id: 2, name: 'Short Break', totalSecs: 5*60, remaining: 5*60, running: false, paused: false, interval: null, overtime: 0, alerting: false },
+  ];
+  nextId = 3;
+}
+renderGrid();
+</script>
+</body>
+</html>
