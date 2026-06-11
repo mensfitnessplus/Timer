@@ -1527,18 +1527,21 @@ function loadState() {
   } catch(e) {}
   return false;
 }
-setTimeout(() => {
-  alert(
-    "Permission: " + Notification.permission +
-    "\nSupported: " + ("Notification" in window)
-  );
-
+setTimeout(async () => {
   try {
-    new Notification("Test Notification", {
-      body: "Hello"
-    });
+    const reg = await navigator.serviceWorker.ready;
+
+    await reg.showNotification(
+      "Test Notification",
+      {
+        body: "This notification comes from the service worker",
+        icon: "./icons/icon-192.png"
+      }
+    );
+
+    alert("showNotification() executed successfully");
   } catch (e) {
-    alert("Notification Error: " + e.message);
+    alert("Error: " + e.message);
     console.error(e);
   }
 }, 3000);
